@@ -114,7 +114,7 @@ If your plugin does not need CSS, delete this file.
 	min-height: 20px;
 	transition: all 0.2s;
 	display: grid;
-	grid-template-columns: 62px 1fr 16px;
+	grid-template-columns: auto 1fr 16px;
 	gap: 10px;
 	padding-right: 4px;
 }
@@ -129,6 +129,7 @@ If your plugin does not need CSS, delete this file.
 .comment > .timestamp,
 .comment > .delete-comment {
 	color: var(--color-base-50);
+	white-space: nowrap;
 }
 
 .delete-comment {
@@ -165,4 +166,120 @@ If your plugin does not need CSS, delete this file.
 }
 .active-comment > .timestamp {
 	color: var(--white);
+}
+
+/* Audio panel styles */
+.audio-panel-header {
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:8px;
+	margin-bottom:8px;
+}
+.audio-panel-block {
+	padding:8px;
+	border-radius:6px;
+	background: var(--background-modifier-hover);
+	margin-bottom:8px;
+}
+.audio-panel-block-title {
+	font-weight:600;
+	margin-bottom:6px;
+}
+.audio-panel-entry {
+	display:flex;
+	align-items:center;
+	gap:8px;
+	padding:6px 4px;
+}
+.audio-panel-entry-left > button {
+	min-width:72px;
+}
+.audio-panel-block-controls {
+	display:flex;
+	align-items:center;
+	gap:12px;
+	margin-bottom:8px;
+}
+.audio-panel-block-play {
+	width:44px;
+	height:44px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background: var(--interactive-accent);
+	border-radius:6px;
+	color: var(--text-muted);
+	cursor:pointer;
+}
+.audio-panel-block-play svg {
+	width:24px;
+	height:24px;
+}
+.audio-panel-block-play:hover {
+	opacity:0.95;
+}
+.audio-panel-block-rate {
+	display:flex;
+	align-items:center;
+	gap:8px;
+	margin-left:auto;
+	min-width:160px;
+}
+.audio-panel-rate-label {
+	font-size:0.85rem;
+	opacity:0.8;
+}
+.audio-panel-rate-value {
+	min-width:48px;
+	text-align:center;
+	font-weight:600;
+	padding:4px 8px;
+	border-radius:6px;
+	border:1px solid var(--background-modifier-hover);
+}
+.audio-panel-rate-btn {
+	width:28px;
+	height:28px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background: var(--background-modifier-hover);
+	border-radius:4px;
+	cursor:pointer;
+}
+.audio-panel-rate-btn:hover {
+	background: var(--background-modifier-color);
+}
+.audio-panel-block-rate input[type=range] {
+	display:none;
+}
+
+.audio-panel-entry {
+	display:flex;
+	align-items:center;
+	gap:12px;
+	padding:6px 8px;
+	border-radius:6px;
+	transition: background 0.15s;
+}
+.audio-panel-entry:hover {
+	background: var(--background-modifier-hover);
+}
+.audio-panel-entry-left > button {
+	min-width:72px;
+	padding:6px 8px;
+	border-radius:6px;
+	background: transparent;
+	border: 1px solid var(--background-modifier-hover);
+	cursor: pointer;
+}
+.audio-panel-entry-content {
+	flex:1;
+	overflow:hidden;
+	text-overflow:ellipsis;
+}
+.audio-panel-empty {
+	opacity:0.8;
+	font-style:italic;
 }

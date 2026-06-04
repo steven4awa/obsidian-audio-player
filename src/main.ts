@@ -3,16 +3,18 @@ import {
 	MarkdownPostProcessorContext,
 	Notice,
 	Plugin,
+	WorkspaceLeaf,
 } from "obsidian";
 
 import { AudioPlayerRenderer } from "./audioPlayerRenderer";
+import { AudioPanelView, VIEW_TYPE_AUDIO_PANEL } from "./audioPanelView";
 
 export default class AudioPlayer extends Plugin {
+	audioPlayer: HTMLAudioElement | null = null;
 	async onload() {
-		const player = document.createElement("audio");
-		player.volume = 0.5;
-		const body = document.getElementsByTagName("body")[0];
-		body.appendChild(player);
+		this.audioPlayer = document.createElement("audio");
+		this.audioPlayer.volume = 0.5;
+		document.body.appendChild(this.audioPlayer);
 
 		this.addCommand({
 			id: "pause-audio",
@@ -21,7 +23,7 @@ export default class AudioPlayer extends Plugin {
 				new Notice("Audio paused");
 				const ev = new Event("allpause");
 				document.dispatchEvent(ev);
-				player.pause();
+				if (this.audioPlayer) this.audioPlayer.pause();
 			},
 		});
 
@@ -32,7 +34,7 @@ export default class AudioPlayer extends Plugin {
 				new Notice("Audio resumed");
 				const ev = new Event("allresume");
 				document.dispatchEvent(ev);
-				if (player.src) player.play();
+				if (this.audioPlayer && this.audioPlayer.src) this.audioPlayer.play();
 			},
 		});
 
@@ -49,7 +51,7 @@ export default class AudioPlayer extends Plugin {
 			id: "audio-forward-5s",
 			name: "+5 sec",
 			callback: () => {
-				if (player.src) player.currentTime += 5;
+				if (this.audioPlayer && this.audioPlayer.src) this.audioPlayer.currentTime += 5;
 			}
 		});
 
@@ -57,7 +59,7 @@ export default class AudioPlayer extends Plugin {
 			id: "audio-back-5s",
 			name: "-5 sec",
 			callback: () => {
-				if (player.src) player.currentTime -= 5;
+				if (this.audioPlayer && this.audioPlayer.src) this.audioPlayer.currentTime -= 5;
 			}
 		});
 
@@ -70,7 +72,7 @@ export default class AudioPlayer extends Plugin {
 			) => {
 				// parse file name
 				const re = /\[\[(.+)\]\]/g;
-				const filename = re.exec(source)?.at(1);
+				const filename = re.exec(source)?.[1];
 				if (!filename) return;
 
 				const allowedExtensions = [
@@ -97,10 +99,26 @@ export default class AudioPlayer extends Plugin {
 					new AudioPlayerRenderer(el, {
 						filepath: link.path,
 						ctx,
-						player,
+						player: this.audioPlayer!,
 					})
 				);
 			}
 		);
+
+		// register audio panel view and command to open it
+		this.registerView(VIEW_TYPE_AUDIO_PANEL, (leaf: WorkspaceLeaf) => new AudioPanelView(leaf, this));
+
+		this.addCommand({
+			id: "open-audio-panel",
+			name: "Open Audio Panel",
+			callback: () => {
+				this.app.workspace.getRightLeaf(false).setViewState({ type: VIEW_TYPE_AUDIO_PANEL });
+			}
+		});
+
+		this.addRibbonIcon('audio-file', 'Open Audio Panel', () => {
+			this.app.workspace.getRightLeaf(false).setViewState({ type: VIEW_TYPE_AUDIO_PANEL });
+		});
+
 	}
 }

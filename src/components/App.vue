@@ -29,6 +29,14 @@
             {{ displayedDuration }}
           </span>
         </div>
+            <div class="speed-control" style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+              <button @click="changeSpeed(-0.25)">-</button>
+              <span>Speed: {{ playbackRate.toFixed(2) }}x</span>
+              <button @click="changeSpeed(0.25)">+</button>
+              <select v-model.number="playbackRate" @change="applyPlaybackRate" style="margin-left:8px;">
+                <option v-for="r in rates" :key="r" :value="r">{{ r }}x</option>
+              </select>
+            </div>
       </div>
     </div>
     <div v-show="smallSize" class="horiz" :style="{'margin': 'auto'}">
@@ -97,6 +105,8 @@ export default defineComponent({
 
       ro: ResizeObserver,
       smallSize: false,
+      playbackRate: 1.0,
+      rates: [0.5, 0.75, 1, 1.25, 1.5, 2],
     }
   },
   computed: {
@@ -106,15 +116,16 @@ export default defineComponent({
     commentsSorted() { return this.comments.sort((x: AudioComment, y:AudioComment) => x.timeNumber - y.timeNumber); },
   },
   methods: {
-    getSectionInfo() { return this.ctx.getSectionInfo(this.mdElement); },
-    getParentWidth() { return this.mdElement.clientWidth },
-    isCurrent() { return this.audio.src === this.srcPath; },
+    getSectionInfo() { return this.ctx?.getSectionInfo(this.mdElement as HTMLElement); },
+    getParentWidth() { return this.mdElement?.clientWidth ?? 0 },
+    isCurrent() { return this.audio?.src === this.srcPath; },
     onResize() { 
       this.smallSize = this.$el.clientWidth < 300;
     },
     async loadFile() {
-      // read file from vault 
-      const file = window.app.vault.getAbstractFileByPath(this.filepath) as TFile;
+      // read file from vault
+      if (!this.filepath) return;
+      const file = window.app.vault.getAbstractFileByPath(this.filepath as string) as TFile;
 
       // process audio file & set audio el source
       if (file && file instanceof TFile) {
@@ -186,16 +197,20 @@ export default defineComponent({
     },
     setPlayheadSecs(time: any) {
       this.currentTime = time;
-      if (!this.isCurrent()) 
+      if (!this.isCurrent())
           this.togglePlay();
 
       if (this.isCurrent()) {
-        this.audio.currentTime = time;
+        if (this.audio) this.audio.currentTime = time;
       }
+      // notify panel to sync
+      document.dispatchEvent(new CustomEvent('audio-time-seek', { detail: { path: this.filepath, time } }));
     },
     togglePlay() {
       if (!this.isCurrent()) {
         this.audio.src = this.srcPath;
+        // apply saved playback rate when loading a new source
+        this.audio.playbackRate = this.playbackRate;
       }
 
       if (this.audio.paused) {
@@ -207,12 +222,30 @@ export default defineComponent({
     },
     play() {
       if (this.currentTime > 0) {
-        this.audio.currentTime = this.currentTime;
+        if (this.audio) this.audio.currentTime = this.currentTime;
       }
       this.audio.addEventListener('timeupdate', this.timeUpdateHandler);
       this.audio?.play();
       this.playing = true;
       this.setBtnIcon('pause');      
+    },
+    applyPlaybackRate() {
+      // apply playback rate to the audio element if this is the current source
+      if (this.isCurrent()) {
+        this.audio.playbackRate = this.playbackRate;
+      }
+      try {
+        localStorage[`${this.filepath}_rate`] = String(this.playbackRate);
+      } catch (e) {
+        // ignore storage errors
+      }
+    },
+    changeSpeed(delta: number) {
+      let newRate = Math.round((this.playbackRate + delta) * 100) / 100;
+      if (newRate < 0.25) newRate = 0.25;
+      if (newRate > 3) newRate = 3;
+      this.playbackRate = newRate;
+      this.applyPlaybackRate();
     },
     pause() {
       this.audio?.pause();
@@ -299,6 +332,29 @@ export default defineComponent({
         this.showCommentInput();
     })
 
+    // listen for rate changes from panel
+    document.addEventListener('panel-rate', (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d && d.path === this.filepath) {
+        this.playbackRate = Number.parseFloat(d.rate);
+        this.applyPlaybackRate();
+      }
+    });
+
+    // listen for seek events from panel — sync waveform immediately
+    document.addEventListener('audio-time-seek', (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d || d.path !== this.filepath) return;
+      const time = Number(d.time);
+      this.currentTime = time;
+      if (this.audio) {
+        if (this.audio.src !== this.srcPath) {
+          this.audio.src = this.srcPath;
+        }
+        this.audio.currentTime = time;
+      }
+    });
+
     this.audio.addEventListener('ended', () => {
       if (this.audio.src === this.srcPath)
         this.setBtnIcon('play');
@@ -317,6 +373,17 @@ export default defineComponent({
 
     // load comments
     setTimeout(() => { this.comments = this.getComments(); });
+
+    // load playback rate for this file if present
+    try {
+      const saved = localStorage[`${this.filepath}_rate`];
+      if (saved) this.playbackRate = Number.parseFloat(saved) || this.playbackRate;
+    } catch (e) {}
+
+    // ensure audio element uses the rate when already set
+    if (this.isCurrent()) {
+      this.audio.playbackRate = this.playbackRate;
+    }
 
 
     this.ro = new ResizeObserver(this.onResize);
