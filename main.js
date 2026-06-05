@@ -7257,6 +7257,32 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
   }
   async onClose() {
   }
+  async insertBookmark(file, src, timeStr, desc) {
+    const text = await this.app.vault.read(file);
+    const regex = /```audio-player\n([\s\S]*?)\n```/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const body = match[1];
+      const linkRe = /\[\[(.+)\]\]/;
+      const linkMatch = linkRe.exec(body);
+      if (!linkMatch)
+        continue;
+      const fname = linkMatch[1].trim();
+      const link = this.app.metadataCache.getFirstLinkpathDest((0, import_obsidian3.getLinkpath)(fname), fname);
+      if (!link)
+        continue;
+      if (this.app.vault.getResourcePath(link) === src) {
+        const insertPos = match.index + match[0].length - 3;
+        const newLine = `${timeStr} --- ${desc}
+`;
+        const newText = text.slice(0, insertPos) + newLine + text.slice(insertPos);
+        await this.app.vault.modify(file, newText);
+        new import_obsidian3.Notice("Bookmark added");
+        return;
+      }
+    }
+    new import_obsidian3.Notice("No matching audio-player block found");
+  }
   async update() {
     if (this._updating)
       return;
@@ -7267,8 +7293,45 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
       this.container.empty();
       const header = this.container.createDiv("audio-panel-header");
       header.createEl("h5", { text: "Audio Player" });
+      const bookmarkBtn = header.createEl("button", { text: "Bookmark" });
       const refresh = header.createEl("button", { text: "refresh" });
       refresh.addEventListener("click", () => this.update());
+      bookmarkBtn.addEventListener("click", () => {
+        const player = this.plugin.audioPlayer;
+        if (!(player == null ? void 0 : player.src)) {
+          new import_obsidian3.Notice("No audio playing");
+          return;
+        }
+        const timeStr = secondsToString(player.currentTime);
+        const file = this.app.workspace.getActiveFile();
+        if (!file)
+          return;
+        const modal = new import_obsidian3.Modal(this.app);
+        modal.titleEl.setText("Add bookmark");
+        const input = modal.contentEl.createEl("input", { type: "text", attr: { placeholder: "Description" } });
+        input.style.width = "100%";
+        input.style.marginBottom = "10px";
+        modal.contentEl.createEl("div", { text: `Time: ${timeStr}` });
+        const submit = () => {
+          const desc = input.value.trim();
+          modal.close();
+          if (!desc)
+            return;
+          this.insertBookmark(file, player.src, timeStr, desc);
+        };
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter")
+            submit();
+        });
+        const btnWrap = modal.contentEl.createDiv();
+        btnWrap.style.cssText = "display:flex;gap:8px;justify-content:flex-end;margin-top:12px;";
+        const okBtn = btnWrap.createEl("button", { text: "Add" });
+        okBtn.addEventListener("click", submit);
+        const cancelBtn = btnWrap.createEl("button", { text: "Cancel" });
+        cancelBtn.addEventListener("click", () => modal.close());
+        setTimeout(() => input.focus(), 50);
+        modal.open();
+      });
       const active = this.app.workspace.getActiveFile();
       if (!active) {
         this.container.createDiv("audio-panel-empty", (el) => el.setText("No active file."));
