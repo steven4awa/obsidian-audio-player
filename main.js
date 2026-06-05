@@ -7274,10 +7274,14 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
           return;
         }
         const bcontrols = blockEl.createDiv("audio-panel-block-controls");
-        const playBtn = bcontrols.createDiv("audio-panel-block-play");
         const resourcePath = this.app.vault.getResourcePath(file);
+        const rewindBtn = bcontrols.createDiv("audio-panel-block-skip");
+        (0, import_obsidian3.setIcon)(rewindBtn, "skip-back");
+        const playBtn = bcontrols.createDiv("audio-panel-block-play");
         (0, import_obsidian3.setIcon)(playBtn, "play");
         this.playBtnByPath.set(file.path, { el: playBtn, resourcePath });
+        const forwardBtn = bcontrols.createDiv("audio-panel-block-skip");
+        (0, import_obsidian3.setIcon)(forwardBtn, "skip-forward");
         const rateWrap = bcontrols.createDiv("audio-panel-block-rate");
         const decBtn = rateWrap.createDiv("audio-panel-rate-btn", (el) => el.setText("-"));
         const rateValue = rateWrap.createDiv("audio-panel-rate-value", (el) => el.setText("1.0"));
@@ -7336,6 +7340,20 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
           (0, import_obsidian3.setIcon)(playBtn, "pause");
           document.dispatchEvent(new Event("allresume"));
           document.dispatchEvent(new CustomEvent("panel-rate", { detail: { path: file.path, rate: player2.playbackRate } }));
+        });
+        rewindBtn.addEventListener("click", () => {
+          const player2 = this.plugin.audioPlayer;
+          if (!(player2 == null ? void 0 : player2.src))
+            return;
+          player2.currentTime = Math.max(0, player2.currentTime - 4);
+          document.dispatchEvent(new CustomEvent("audio-time-seek", { detail: { path: file.path, time: player2.currentTime } }));
+        });
+        forwardBtn.addEventListener("click", () => {
+          const player2 = this.plugin.audioPlayer;
+          if (!(player2 == null ? void 0 : player2.src))
+            return;
+          player2.currentTime = Math.min(player2.duration || Infinity, player2.currentTime + 4);
+          document.dispatchEvent(new CustomEvent("audio-time-seek", { detail: { path: file.path, time: player2.currentTime } }));
         });
         decBtn.addEventListener("click", () => {
           let newv = Math.round((currentRate - 0.25) * 100) / 100;

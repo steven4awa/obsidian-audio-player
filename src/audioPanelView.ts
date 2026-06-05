@@ -136,10 +136,19 @@ export class AudioPanelView extends ItemView {
 
       // block-level controls (play/pause + rate slider)
       const bcontrols = blockEl.createDiv('audio-panel-block-controls');
-      const playBtn = bcontrols.createDiv('audio-panel-block-play');
       const resourcePath = this.app.vault.getResourcePath(file);
+
+      // rewind -4s button
+      const rewindBtn = bcontrols.createDiv('audio-panel-block-skip');
+      setIcon(rewindBtn, 'skip-back');
+
+      const playBtn = bcontrols.createDiv('audio-panel-block-play');
       setIcon(playBtn, 'play');
       this.playBtnByPath.set(file.path, { el: playBtn, resourcePath });
+
+      // forward +4s button
+      const forwardBtn = bcontrols.createDiv('audio-panel-block-skip');
+      setIcon(forwardBtn, 'skip-forward');
 
       const rateWrap = bcontrols.createDiv('audio-panel-block-rate');
       const decBtn = rateWrap.createDiv('audio-panel-rate-btn', (el) => el.setText('-'));
@@ -202,6 +211,22 @@ export class AudioPanelView extends ItemView {
         document.dispatchEvent(new Event('allresume'));
         // ensure other UI syncs rate
         document.dispatchEvent(new CustomEvent('panel-rate', { detail: { path: file.path, rate: player.playbackRate } }));
+      });
+
+      // skip -4s
+      rewindBtn.addEventListener('click', () => {
+        const player = this.plugin.audioPlayer;
+        if (!player?.src) return;
+        player.currentTime = Math.max(0, player.currentTime - 4);
+        document.dispatchEvent(new CustomEvent('audio-time-seek', { detail: { path: file.path, time: player.currentTime } }));
+      });
+
+      // skip +4s
+      forwardBtn.addEventListener('click', () => {
+        const player = this.plugin.audioPlayer;
+        if (!player?.src) return;
+        player.currentTime = Math.min(player.duration || Infinity, player.currentTime + 4);
+        document.dispatchEvent(new CustomEvent('audio-time-seek', { detail: { path: file.path, time: player.currentTime } }));
       });
 
       // +/- buttons to step rate by 0.25

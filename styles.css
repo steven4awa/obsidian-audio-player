@@ -256,3 +256,22 @@ If your plugin does not need CSS, delete this file.
 	background: var(--interactive-accent-hover);
 	color: var(--text-normal);
 }
+
+.audio-panel-block-skip {
+	width:30px;
+	height:30px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	border-radius:50%;
+	color: var(--text-muted);
+	cursor:pointer;
+}
+.audio-panel-block-skip svg {
+	width:20px;
+	height:20px;
+}
+.audio-panel-block-skip:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
