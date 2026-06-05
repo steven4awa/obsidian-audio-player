@@ -14,13 +14,14 @@ type Block = {
   filename: string;
   file?: TFile;
   entries: AudioEntry[];
+  lineNumber: number;
 };
 
 export class AudioPanelView extends ItemView {
   plugin: AudioPlayer;
   container: HTMLElement;
   private _updating = false;
-  private playBtnByPath: Map<string, HTMLElement> = new Map();
+  private playBtnByPath: Map<string, { el: HTMLElement; resourcePath: string }> = new Map();
 
   constructor(leaf: WorkspaceLeaf, plugin: AudioPlayer) {
     super(leaf);
@@ -53,20 +54,31 @@ export class AudioPanelView extends ItemView {
     this.registerEvent(this.app.vault.on('modify', () => this.update()));
 
     // update UI when global play/pause occurs elsewhere
-    document.addEventListener('allpause', () => this.update());
-    document.addEventListener('allresume', () => this.update());
+    document.addEventListener('allpause', () => {
+      this.playBtnByPath.forEach(({ el }) => setIcon(el, 'play'));
+    });
+    document.addEventListener('allresume', () => {
+      const player = this.plugin.audioPlayer;
+      if (!player?.src) return;
+      for (const [, { el, resourcePath }] of this.playBtnByPath) {
+        if (player.src === resourcePath) {
+          setIcon(el, 'pause');
+          break;
+        }
+      }
+    });
 
     // sync play button state when waveform seeks
     document.addEventListener('audio-time-seek', (ev: Event) => {
       const detail = (ev as CustomEvent).detail;
       if (!detail?.path) return;
-      const btn = this.playBtnByPath.get(detail.path);
-      if (!btn) return;
+      const entry = this.playBtnByPath.get(detail.path);
+      if (!entry) return;
       const player = this.plugin.audioPlayer;
       if (player && player.src && !player.paused) {
-        setIcon(btn, 'pause');
+        setIcon(entry.el, 'pause');
       } else {
-        setIcon(btn, 'play');
+        setIcon(entry.el, 'play');
       }
     });
   }
@@ -79,6 +91,7 @@ export class AudioPanelView extends ItemView {
     if (this._updating) return;
     this._updating = true;
     try {
+    this.playBtnByPath.clear();
     this.container.empty();
     const header = this.container.createDiv('audio-panel-header');
     header.createEl('h5', { text: 'Audio Player' });
@@ -100,7 +113,20 @@ export class AudioPanelView extends ItemView {
 
     blocks.forEach((blk) => {
         const blockEl = this.container.createDiv('audio-panel-block');
-      blockEl.createEl('div', { text: `File: ${blk.filename}` }).addClass('audio-panel-block-title');
+      const titleEl = blockEl.createEl('div', { text: `File: ${blk.filename}` });
+      titleEl.addClass('audio-panel-block-title');
+      titleEl.addEventListener('click', async () => {
+        const leaf = this.app.workspace.getLeaf(false);
+        await leaf.openFile(active);
+        const editor = (leaf.view as any)?.editor;
+        if (editor) {
+          editor.setCursor(blk.lineNumber, 0);
+          editor.scrollIntoView(
+            { from: { line: blk.lineNumber, ch: 0 }, to: { line: blk.lineNumber, ch: 0 } },
+            true
+          );
+        }
+      });
 
       const file = blk.file;
       if (!file) {
@@ -111,15 +137,14 @@ export class AudioPanelView extends ItemView {
       // block-level controls (play/pause + rate slider)
       const bcontrols = blockEl.createDiv('audio-panel-block-controls');
       const playBtn = bcontrols.createDiv('audio-panel-block-play');
+      const resourcePath = this.app.vault.getResourcePath(file);
       setIcon(playBtn, 'play');
-      this.playBtnByPath.set(file.path, playBtn);
+      this.playBtnByPath.set(file.path, { el: playBtn, resourcePath });
 
       const rateWrap = bcontrols.createDiv('audio-panel-block-rate');
       const decBtn = rateWrap.createDiv('audio-panel-rate-btn', (el) => el.setText('-'));
       const rateValue = rateWrap.createDiv('audio-panel-rate-value', (el) => el.setText('1.0'));
       const incBtn = rateWrap.createDiv('audio-panel-rate-btn', (el) => el.setText('+'));
-
-      const resourcePath = this.app.vault.getResourcePath(file);
 
       // current rate for this file (default 1.0)
       let currentRate = 1.0;
@@ -246,6 +271,7 @@ export class AudioPanelView extends ItemView {
 
     for (const m of matches) {
       const body = m[1];
+      const lineNumber = text.substring(0, m.index).split('\n').length - 1;
       const linkRe = /\[\[(.+)\]\]/;
       const linkMatch = linkRe.exec(body);
       if (!linkMatch) continue;
@@ -265,7 +291,7 @@ export class AudioPanelView extends ItemView {
         }
       }
 
-      blocks.push({ filename, file: link || undefined, entries });
+      blocks.push({ filename, file: link || undefined, entries, lineNumber });
     }
 
     return blocks;

@@ -174,7 +174,6 @@ If your plugin does not need CSS, delete this file.
 	align-items:center;
 	justify-content:space-between;
 	gap:8px;
-	margin-bottom:8px;
 }
 .audio-panel-block {
 	padding:8px;
@@ -184,7 +183,12 @@ If your plugin does not need CSS, delete this file.
 }
 .audio-panel-block-title {
 	font-weight:600;
-	margin-bottom:6px;
+	margin-bottom:2px;
+	cursor:pointer;
+}
+.audio-panel-block-title:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
 }
 .audio-panel-entry {
 	display:flex;
@@ -195,20 +199,51 @@ If your plugin does not need CSS, delete this file.
 .audio-panel-entry-left > button {
 	min-width:72px;
 }
-.audio-panel-block-controls {
+.audio-panel-entry-controls {
 	display:flex;
 	align-items:center;
-	gap:12px;
-	margin-bottom:8px;
+	gap:6px;
+	margin-left:auto;
 }
+.audio-panel-entry-rate {
+	min-width:48px;
+	text-align:center;
+}
+.audio-panel-empty {
+	opacity:0.8;
+	font-style:italic;
+}
+.audio-panel-block-controls{
+	display: flex;
+	justify-content: space-around;
+	gap: 5px;
+}
+.audio-panel-block-rate{
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 20px;
+	gap: 5px;
+}
+
+.audio-panel-header h5 {
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+/* .audio-panel-block-play{
+	width: 20px;
+} */
+
 .audio-panel-block-play {
-	width:44px;
-	height:44px;
+	width:34px;
+	height:34px;
 	display:flex;
 	align-items:center;
 	justify-content:center;
 	background: var(--interactive-accent);
-	border-radius:6px;
+	border-radius:50%;
 	color: var(--text-muted);
 	cursor:pointer;
 }
@@ -216,70 +251,8 @@ If your plugin does not need CSS, delete this file.
 	width:24px;
 	height:24px;
 }
-.audio-panel-block-play:hover {
-	opacity:0.95;
-}
-.audio-panel-block-rate {
-	display:flex;
-	align-items:center;
-	gap:8px;
-	margin-left:auto;
-	min-width:160px;
-}
-.audio-panel-rate-label {
-	font-size:0.85rem;
-	opacity:0.8;
-}
-.audio-panel-rate-value {
-	min-width:48px;
-	text-align:center;
-	font-weight:600;
-	padding:4px 8px;
-	border-radius:6px;
-	border:1px solid var(--background-modifier-hover);
-}
-.audio-panel-rate-btn {
-	width:28px;
-	height:28px;
-	display:flex;
-	align-items:center;
-	justify-content:center;
-	background: var(--background-modifier-hover);
-	border-radius:4px;
-	cursor:pointer;
-}
-.audio-panel-rate-btn:hover {
-	background: var(--background-modifier-color);
-}
-.audio-panel-block-rate input[type=range] {
-	display:none;
-}
 
-.audio-panel-entry {
-	display:flex;
-	align-items:center;
-	gap:12px;
-	padding:6px 8px;
-	border-radius:6px;
-	transition: background 0.15s;
-}
-.audio-panel-entry:hover {
-	background: var(--background-modifier-hover);
-}
-.audio-panel-entry-left > button {
-	min-width:72px;
-	padding:6px 8px;
-	border-radius:6px;
-	background: transparent;
-	border: 1px solid var(--background-modifier-hover);
-	cursor: pointer;
-}
-.audio-panel-entry-content {
-	flex:1;
-	overflow:hidden;
-	text-overflow:ellipsis;
-}
-.audio-panel-empty {
-	opacity:0.8;
-	font-style:italic;
+.audio-panel-block-play:hover {
+	background: var(--interactive-accent-hover);
+	color: var(--text-normal);
 }

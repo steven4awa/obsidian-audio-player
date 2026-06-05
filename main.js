@@ -7201,20 +7201,32 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     this.update();
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.update()));
     this.registerEvent(this.app.vault.on("modify", () => this.update()));
-    document.addEventListener("allpause", () => this.update());
-    document.addEventListener("allresume", () => this.update());
+    document.addEventListener("allpause", () => {
+      this.playBtnByPath.forEach(({ el }) => (0, import_obsidian3.setIcon)(el, "play"));
+    });
+    document.addEventListener("allresume", () => {
+      const player = this.plugin.audioPlayer;
+      if (!(player == null ? void 0 : player.src))
+        return;
+      for (const [, { el, resourcePath }] of this.playBtnByPath) {
+        if (player.src === resourcePath) {
+          (0, import_obsidian3.setIcon)(el, "pause");
+          break;
+        }
+      }
+    });
     document.addEventListener("audio-time-seek", (ev) => {
       const detail = ev.detail;
       if (!(detail == null ? void 0 : detail.path))
         return;
-      const btn = this.playBtnByPath.get(detail.path);
-      if (!btn)
+      const entry = this.playBtnByPath.get(detail.path);
+      if (!entry)
         return;
       const player = this.plugin.audioPlayer;
       if (player && player.src && !player.paused) {
-        (0, import_obsidian3.setIcon)(btn, "pause");
+        (0, import_obsidian3.setIcon)(entry.el, "pause");
       } else {
-        (0, import_obsidian3.setIcon)(btn, "play");
+        (0, import_obsidian3.setIcon)(entry.el, "play");
       }
     });
   }
@@ -7225,6 +7237,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
       return;
     this._updating = true;
     try {
+      this.playBtnByPath.clear();
       this.container.empty();
       const header = this.container.createDiv("audio-panel-header");
       header.createEl("h5", { text: "Audio Player" });
@@ -7243,7 +7256,18 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
       }
       blocks.forEach((blk) => {
         const blockEl = this.container.createDiv("audio-panel-block");
-        blockEl.createEl("div", { text: `File: ${blk.filename}` }).addClass("audio-panel-block-title");
+        const titleEl = blockEl.createEl("div", { text: `File: ${blk.filename}` });
+        titleEl.addClass("audio-panel-block-title");
+        titleEl.addEventListener("click", async () => {
+          var _a2;
+          const leaf = this.app.workspace.getLeaf(false);
+          await leaf.openFile(active);
+          const editor = (_a2 = leaf.view) == null ? void 0 : _a2.editor;
+          if (editor) {
+            editor.setCursor(blk.lineNumber, 0);
+            editor.scrollIntoView({ from: { line: blk.lineNumber, ch: 0 }, to: { line: blk.lineNumber, ch: 0 } }, true);
+          }
+        });
         const file = blk.file;
         if (!file) {
           blockEl.createDiv("audio-panel-missing", (el) => el.setText("Referenced audio file not found."));
@@ -7251,13 +7275,13 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
         }
         const bcontrols = blockEl.createDiv("audio-panel-block-controls");
         const playBtn = bcontrols.createDiv("audio-panel-block-play");
+        const resourcePath = this.app.vault.getResourcePath(file);
         (0, import_obsidian3.setIcon)(playBtn, "play");
-        this.playBtnByPath.set(file.path, playBtn);
+        this.playBtnByPath.set(file.path, { el: playBtn, resourcePath });
         const rateWrap = bcontrols.createDiv("audio-panel-block-rate");
         const decBtn = rateWrap.createDiv("audio-panel-rate-btn", (el) => el.setText("-"));
         const rateValue = rateWrap.createDiv("audio-panel-rate-value", (el) => el.setText("1.0"));
         const incBtn = rateWrap.createDiv("audio-panel-rate-btn", (el) => el.setText("+"));
-        const resourcePath = this.app.vault.getResourcePath(file);
         let currentRate = 1;
         try {
           const saved = localStorage[`${file.path}_rate`];
@@ -7369,6 +7393,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     const blocks = [];
     for (const m of matches) {
       const body = m[1];
+      const lineNumber = text.substring(0, m.index).split("\n").length - 1;
       const linkRe = /\[\[(.+)\]\]/;
       const linkMatch = linkRe.exec(body);
       if (!linkMatch)
@@ -7386,7 +7411,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
           entries.push({ timeString: tstr, timeNumber: secondsToNumber(tstr), content });
         }
       }
-      blocks.push({ filename, file: link || void 0, entries });
+      blocks.push({ filename, file: link || void 0, entries, lineNumber });
     }
     return blocks;
   }
