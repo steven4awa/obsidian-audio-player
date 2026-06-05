@@ -7180,6 +7180,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     super(leaf);
     this._updating = false;
     this.playBtnByPath = /* @__PURE__ */ new Map();
+    this.progressByPath = /* @__PURE__ */ new Map();
     this.plugin = plugin;
     this.container = this.contentEl;
   }
@@ -7190,6 +7191,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     return "Audio Player";
   }
   async onOpen() {
+    var _a2;
     this.container = this.contentEl;
     this.container.empty();
     const header = this.container.createDiv("audio-panel-header");
@@ -7219,14 +7221,37 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
       const detail = ev.detail;
       if (!(detail == null ? void 0 : detail.path))
         return;
-      const entry = this.playBtnByPath.get(detail.path);
-      if (!entry)
-        return;
+      const btnEntry = this.playBtnByPath.get(detail.path);
+      if (btnEntry) {
+        const player = this.plugin.audioPlayer;
+        if (player && player.src && !player.paused) {
+          (0, import_obsidian3.setIcon)(btnEntry.el, "pause");
+        } else {
+          (0, import_obsidian3.setIcon)(btnEntry.el, "play");
+        }
+      }
+      const progEntry = this.progressByPath.get(detail.path);
+      if (progEntry && detail.time !== void 0) {
+        progEntry.slider.value = String(detail.time);
+        progEntry.timeEl.setText(secondsToString(detail.time));
+      }
+    });
+    (_a2 = this.plugin.audioPlayer) == null ? void 0 : _a2.addEventListener("timeupdate", () => {
       const player = this.plugin.audioPlayer;
-      if (player && player.src && !player.paused) {
-        (0, import_obsidian3.setIcon)(entry.el, "pause");
-      } else {
-        (0, import_obsidian3.setIcon)(entry.el, "play");
+      if (!(player == null ? void 0 : player.src))
+        return;
+      for (const [, entry] of this.progressByPath) {
+        if (player.src === entry.resourcePath) {
+          if (entry.slider.dataset.seeking === "true")
+            return;
+          const dur = player.duration;
+          if (dur && isFinite(dur)) {
+            entry.slider.max = String(dur);
+          }
+          entry.slider.value = String(player.currentTime);
+          entry.timeEl.setText(secondsToString(player.currentTime));
+          break;
+        }
       }
     });
   }
@@ -7238,6 +7263,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     this._updating = true;
     try {
       this.playBtnByPath.clear();
+      this.progressByPath.clear();
       this.container.empty();
       const header = this.container.createDiv("audio-panel-header");
       header.createEl("h5", { text: "Audio Player" });
@@ -7367,6 +7393,32 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
             newv = 3;
           broadcastRate(newv);
         });
+        const progressWrap = blockEl.createDiv("audio-panel-progress");
+        const timeEl = progressWrap.createSpan("audio-panel-progress-time");
+        timeEl.setText("00:00:00");
+        const slider = progressWrap.createEl("input");
+        slider.type = "range";
+        slider.addClass("audio-panel-progress-slider");
+        slider.min = "0";
+        slider.max = "100";
+        slider.value = "0";
+        slider.step = "0.1";
+        slider.addEventListener("pointerdown", () => {
+          slider.dataset.seeking = "true";
+        });
+        slider.addEventListener("pointerup", () => {
+          slider.dataset.seeking = "false";
+        });
+        slider.addEventListener("input", () => {
+          const player2 = this.plugin.audioPlayer;
+          if (!player2)
+            return;
+          const t = Number(slider.value);
+          player2.currentTime = t;
+          timeEl.setText(secondsToString(t));
+          document.dispatchEvent(new CustomEvent("audio-time-seek", { detail: { path: file.path, time: t } }));
+        });
+        this.progressByPath.set(file.path, { slider, timeEl, resourcePath });
         const player = this.plugin.audioPlayer;
         if (player && player.src === resourcePath && !player.paused) {
           (0, import_obsidian3.setIcon)(playBtn, "pause");

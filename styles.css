@@ -222,8 +222,32 @@ If your plugin does not need CSS, delete this file.
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	font-size: 20px;
-	gap: 5px;
+	gap: 4px;
+	width: 20%;
+}
+.audio-panel-rate-btn {
+	width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	cursor: pointer;
+	user-select: none;
+}
+.audio-panel-rate-btn:hover {
+	color: var(--text-accent);
+	background: var(--background-modifier-hover);
+}
+.audio-panel-rate-value {
+	min-width: 34px;
+	text-align: center;
+	font-size: 0.8rem;
+	font-weight: 600;
+	font-family: var(--font-monospace);
 }
 
 .audio-panel-header h5 {
@@ -274,4 +298,47 @@ If your plugin does not need CSS, delete this file.
 .audio-panel-block-skip:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
+}
+
+.audio-panel-progress {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 10px;
+	margin-bottom: 4px;
+}
+.audio-panel-progress-time {
+	font-size: 0.7rem;
+	color: var(--text-muted);
+	flex-shrink: 0;
+	white-space: nowrap;
+	font-family: var(--font-monospace);
+}
+.audio-panel-progress-slider {
+	flex: 1;
+	min-width: 0;
+	height: 4px;
+	cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+	background: var(--background-modifier-border);
+	border-radius: 2px;
+	outline: none;
+}
+.audio-panel-progress-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	cursor: pointer;
+}
+.audio-panel-progress-slider::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	cursor: pointer;
+	border: none;
 }

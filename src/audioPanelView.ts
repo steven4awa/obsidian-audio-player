@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, getLinkpath, setIcon } from 'obsidian';
-import { secondsToNumber } from './utils';
+import { secondsToNumber, secondsToString } from './utils';
 import type AudioPlayer from './main';
 
 export const VIEW_TYPE_AUDIO_PANEL = 'audio-player-panel';
@@ -22,6 +22,7 @@ export class AudioPanelView extends ItemView {
   container: HTMLElement;
   private _updating = false;
   private playBtnByPath: Map<string, { el: HTMLElement; resourcePath: string }> = new Map();
+  private progressByPath: Map<string, { slider: HTMLInputElement; timeEl: HTMLElement; resourcePath: string }> = new Map();
 
   constructor(leaf: WorkspaceLeaf, plugin: AudioPlayer) {
     super(leaf);
@@ -68,17 +69,42 @@ export class AudioPanelView extends ItemView {
       }
     });
 
-    // sync play button state when waveform seeks
+    // sync play button and progress bar when waveform seeks
     document.addEventListener('audio-time-seek', (ev: Event) => {
       const detail = (ev as CustomEvent).detail;
       if (!detail?.path) return;
-      const entry = this.playBtnByPath.get(detail.path);
-      if (!entry) return;
+      const btnEntry = this.playBtnByPath.get(detail.path);
+      if (btnEntry) {
+        const player = this.plugin.audioPlayer;
+        if (player && player.src && !player.paused) {
+          setIcon(btnEntry.el, 'pause');
+        } else {
+          setIcon(btnEntry.el, 'play');
+        }
+      }
+      // also sync progress bar
+      const progEntry = this.progressByPath.get(detail.path);
+      if (progEntry && detail.time !== undefined) {
+        progEntry.slider.value = String(detail.time);
+        progEntry.timeEl.setText(secondsToString(detail.time));
+      }
+    });
+
+    // keep progress bar in sync with audio playback
+    this.plugin.audioPlayer?.addEventListener('timeupdate', () => {
       const player = this.plugin.audioPlayer;
-      if (player && player.src && !player.paused) {
-        setIcon(entry.el, 'pause');
-      } else {
-        setIcon(entry.el, 'play');
+      if (!player?.src) return;
+      for (const [, entry] of this.progressByPath) {
+        if (player.src === entry.resourcePath) {
+          if (entry.slider.dataset.seeking === 'true') return;
+          const dur = player.duration;
+          if (dur && isFinite(dur)) {
+            entry.slider.max = String(dur);
+          }
+          entry.slider.value = String(player.currentTime);
+          entry.timeEl.setText(secondsToString(player.currentTime));
+          break;
+        }
       }
     });
   }
@@ -92,6 +118,7 @@ export class AudioPanelView extends ItemView {
     this._updating = true;
     try {
     this.playBtnByPath.clear();
+    this.progressByPath.clear();
     this.container.empty();
     const header = this.container.createDiv('audio-panel-header');
     header.createEl('h5', { text: 'Audio Player' });
@@ -240,6 +267,31 @@ export class AudioPanelView extends ItemView {
         if (newv > 3) newv = 3;
         broadcastRate(newv);
       });
+
+      // progress bar
+      const progressWrap = blockEl.createDiv('audio-panel-progress');
+      const timeEl = progressWrap.createSpan('audio-panel-progress-time');
+      timeEl.setText('00:00:00');
+      const slider = progressWrap.createEl('input');
+      slider.type = 'range';
+      slider.addClass('audio-panel-progress-slider');
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = '0';
+      slider.step = '0.1';
+
+      slider.addEventListener('pointerdown', () => { slider.dataset.seeking = 'true'; });
+      slider.addEventListener('pointerup', () => { slider.dataset.seeking = 'false'; });
+      slider.addEventListener('input', () => {
+        const player = this.plugin.audioPlayer;
+        if (!player) return;
+        const t = Number(slider.value);
+        player.currentTime = t;
+        timeEl.setText(secondsToString(t));
+        document.dispatchEvent(new CustomEvent('audio-time-seek', { detail: { path: file.path, time: t } }));
+      });
+
+      this.progressByPath.set(file.path, { slider, timeEl, resourcePath });
 
       // update play button state based on current global player
       const player = this.plugin.audioPlayer;
