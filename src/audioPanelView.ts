@@ -46,7 +46,7 @@ export class AudioPanelView extends ItemView {
     setIcon(headerIcon, 'audio-file');
     header.createEl('h5', { text: 'Audio Player' });
     const refresh = header.createEl('button', { text: 'Refresh' });
-    refresh.addEventListener('click', () => this.update());
+    refresh.addEventListener('mousedown', (e) => { e.preventDefault(); this.update(); });
 
     this.update();
 
@@ -148,9 +148,10 @@ export class AudioPanelView extends ItemView {
     header.createEl('h5', { text: 'Audio Player' });
     const bookmarkBtn = header.createEl('button', { text: 'Bookmark' });
     const refresh = header.createEl('button', { text: 'refresh' });
-    refresh.addEventListener('click', () => this.update());
+    refresh.addEventListener('mousedown', (e) => { e.preventDefault(); this.update(); });
 
-    bookmarkBtn.addEventListener('click', () => {
+    bookmarkBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
       const player = this.plugin.audioPlayer;
       if (!player?.src) {
         new Notice('No audio playing');
@@ -203,7 +204,8 @@ export class AudioPanelView extends ItemView {
         const blockEl = this.container.createDiv('audio-panel-block');
       const titleEl = blockEl.createEl('div', { text: `File: ${blk.filename}` });
       titleEl.addClass('audio-panel-block-title');
-      titleEl.addEventListener('click', async () => {
+      titleEl.addEventListener('mousedown', async (e) => {
+        e.preventDefault();
         const leaf = this.app.workspace.getLeaf(false);
         await leaf.openFile(active);
         const editor = (leaf.view as any)?.editor;
@@ -269,7 +271,8 @@ export class AudioPanelView extends ItemView {
         document.dispatchEvent(new CustomEvent('panel-rate', { detail: { path: file.path, rate: r } }));
       };
 
-      playBtn.addEventListener('click', () => {
+      playBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         const player = this.plugin.audioPlayer;
         if (!player) return;
 
@@ -302,7 +305,8 @@ export class AudioPanelView extends ItemView {
       });
 
       // skip -4s
-      rewindBtn.addEventListener('click', () => {
+      rewindBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         const player = this.plugin.audioPlayer;
         if (!player?.src) return;
         player.currentTime = Math.max(0, player.currentTime - 4);
@@ -310,7 +314,8 @@ export class AudioPanelView extends ItemView {
       });
 
       // skip +4s
-      forwardBtn.addEventListener('click', () => {
+      forwardBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         const player = this.plugin.audioPlayer;
         if (!player?.src) return;
         player.currentTime = Math.min(player.duration || Infinity, player.currentTime + 4);
@@ -318,12 +323,14 @@ export class AudioPanelView extends ItemView {
       });
 
       // +/- buttons to step rate by 0.25
-      decBtn.addEventListener('click', () => {
+      decBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         let newv = Math.round((currentRate - 0.25) * 100) / 100;
         if (newv < 0.25) newv = 0.25;
         broadcastRate(newv);
       });
-      incBtn.addEventListener('click', () => {
+      incBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
         let newv = Math.round((currentRate + 0.25) * 100) / 100;
         if (newv > 3) newv = 3;
         broadcastRate(newv);
@@ -364,7 +371,8 @@ export class AudioPanelView extends ItemView {
       blk.entries.forEach((e) => {
         const row = blockEl.createDiv('audio-panel-entry');
         const left = row.createDiv('audio-panel-entry-left');
-        left.createEl('button', { text: e.timeString }).addEventListener('click', () => {
+        left.createEl('button', { text: e.timeString }).addEventListener('mousedown', (ev) => {
+          ev.preventDefault();
           const player = this.plugin.audioPlayer;
           if (!player) return;
           document.dispatchEvent(new Event('allpause'));

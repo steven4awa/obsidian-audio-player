@@ -7199,7 +7199,10 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
     (0, import_obsidian3.setIcon)(headerIcon, "audio-file");
     header.createEl("h5", { text: "Audio Player" });
     const refresh = header.createEl("button", { text: "Refresh" });
-    refresh.addEventListener("click", () => this.update());
+    refresh.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      this.update();
+    });
     this.update();
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.update()));
     this.registerEvent(this.app.vault.on("modify", () => this.update()));
@@ -7295,8 +7298,12 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
       header.createEl("h5", { text: "Audio Player" });
       const bookmarkBtn = header.createEl("button", { text: "Bookmark" });
       const refresh = header.createEl("button", { text: "refresh" });
-      refresh.addEventListener("click", () => this.update());
-      bookmarkBtn.addEventListener("click", () => {
+      refresh.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        this.update();
+      });
+      bookmarkBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
         const player = this.plugin.audioPlayer;
         if (!(player == null ? void 0 : player.src)) {
           new import_obsidian3.Notice("No audio playing");
@@ -7319,8 +7326,8 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
             return;
           this.insertBookmark(file, player.src, timeStr, desc);
         };
-        input.addEventListener("keydown", (e) => {
-          if (e.key === "Enter")
+        input.addEventListener("keydown", (e2) => {
+          if (e2.key === "Enter")
             submit();
         });
         const btnWrap = modal.contentEl.createDiv();
@@ -7347,8 +7354,9 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
         const blockEl = this.container.createDiv("audio-panel-block");
         const titleEl = blockEl.createEl("div", { text: `File: ${blk.filename}` });
         titleEl.addClass("audio-panel-block-title");
-        titleEl.addEventListener("click", async () => {
+        titleEl.addEventListener("mousedown", async (e) => {
           var _a2;
+          e.preventDefault();
           const leaf = this.app.workspace.getLeaf(false);
           await leaf.openFile(active);
           const editor = (_a2 = leaf.view) == null ? void 0 : _a2.editor;
@@ -7400,7 +7408,8 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
             player2.playbackRate = r;
           document.dispatchEvent(new CustomEvent("panel-rate", { detail: { path: file.path, rate: r } }));
         };
-        playBtn.addEventListener("click", () => {
+        playBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           const player2 = this.plugin.audioPlayer;
           if (!player2)
             return;
@@ -7422,7 +7431,7 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
               player2.playbackRate = Number.parseFloat(saved);
             else
               player2.playbackRate = currentRate;
-          } catch (e) {
+          } catch (e2) {
             player2.playbackRate = currentRate;
           }
           player2.play();
@@ -7430,27 +7439,31 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
           document.dispatchEvent(new Event("allresume"));
           document.dispatchEvent(new CustomEvent("panel-rate", { detail: { path: file.path, rate: player2.playbackRate } }));
         });
-        rewindBtn.addEventListener("click", () => {
+        rewindBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           const player2 = this.plugin.audioPlayer;
           if (!(player2 == null ? void 0 : player2.src))
             return;
           player2.currentTime = Math.max(0, player2.currentTime - 4);
           document.dispatchEvent(new CustomEvent("audio-time-seek", { detail: { path: file.path, time: player2.currentTime } }));
         });
-        forwardBtn.addEventListener("click", () => {
+        forwardBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           const player2 = this.plugin.audioPlayer;
           if (!(player2 == null ? void 0 : player2.src))
             return;
           player2.currentTime = Math.min(player2.duration || Infinity, player2.currentTime + 4);
           document.dispatchEvent(new CustomEvent("audio-time-seek", { detail: { path: file.path, time: player2.currentTime } }));
         });
-        decBtn.addEventListener("click", () => {
+        decBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           let newv = Math.round((currentRate - 0.25) * 100) / 100;
           if (newv < 0.25)
             newv = 0.25;
           broadcastRate(newv);
         });
-        incBtn.addEventListener("click", () => {
+        incBtn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           let newv = Math.round((currentRate + 0.25) * 100) / 100;
           if (newv > 3)
             newv = 3;
@@ -7489,7 +7502,8 @@ var AudioPanelView = class extends import_obsidian3.ItemView {
         blk.entries.forEach((e) => {
           const row = blockEl.createDiv("audio-panel-entry");
           const left = row.createDiv("audio-panel-entry-left");
-          left.createEl("button", { text: e.timeString }).addEventListener("click", () => {
+          left.createEl("button", { text: e.timeString }).addEventListener("mousedown", (ev) => {
+            ev.preventDefault();
             const player2 = this.plugin.audioPlayer;
             if (!player2)
               return;
